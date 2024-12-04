@@ -9,19 +9,54 @@ import seaborn as sns
 data_path = "dinkes-od_15940_jumlah_kasus_penyakit_berdasarkan_jenis_penyakit_data.csv"
 data = pd.read_csv(data_path)
 
+# Load data
+data_path = "dinkes-od_15940_jumlah_kasus_penyakit_berdasarkan_jenis_penyakit_data.csv"
+data = pd.read_csv(data_path)
+
 # Sidebar Filters
-st.sidebar.header("Filter Data")
+st.sidebar.header("🔎 Filter Data")
+st.sidebar.markdown("Pilih filter di bawah ini untuk melihat data yang diinginkan:")
+
+# Menambahkan logo Dinas Kesehatan di Sidebar
+logo_path = "iamges.jpg"  # Ganti dengan path ke logo yang sesuai
+st.sidebar.image(logo_path, use_column_width=True, caption="Dinas Kesehatan Jawa Barat")
+
+# Filter Tahun
 selected_year = st.sidebar.multiselect(
-    "Pilih Tahun", options=data["tahun"].unique(), default=data["tahun"].unique()
-)
-selected_province = st.sidebar.multiselect(
-    "Pilih Provinsi", options=data["nama_provinsi"].unique(), default=data["nama_provinsi"].unique()
+    "📅 Pilih Tahun", 
+    options=data["tahun"].unique(), 
+    default=data["tahun"].unique(),
+    help="Pilih satu atau beberapa tahun untuk melihat data kasus penyakit."
 )
 
-# Filter data
+# Filter Kota/Kabupaten
+selected_city = st.sidebar.multiselect(
+    "🏙️ Pilih Kota/Kabupaten", 
+    options=data["nama_kabupaten_kota"].unique(),  # Pastikan kolom ini ada dalam dataset Anda
+    default=data["nama_kabupaten_kota"].unique(),
+    help="Pilih satu atau lebih Kota/Kabupaten untuk melihat distribusi kasus penyakit."
+)
+
+# Informasi Sidebar
+st.sidebar.markdown("""
+**Info:**
+- Gunakan filter untuk menyesuaikan data berdasarkan Tahun dan Provinsi.
+- Anda dapat memilih beberapa opsi dari masing-masing filter.
+""")
+
+# Menampilkan jumlah data yang dipilih di sidebar
+st.sidebar.markdown(f"### Total Data yang Dipilih: {len(selected_year)} Tahun, {len(selected_city)} Kota/Kabupaten")
+
+# Filter data berdasarkan pilihan
 filtered_data = data[
-    (data["tahun"].isin(selected_year)) & (data["nama_provinsi"].isin(selected_province))
+    (data["tahun"].isin(selected_year)) & (data["nama_kabupaten_kota"].isin(selected_city))  # Menggunakan kolom kota/kabupaten
 ]
+
+# Menampilkan data yang difilter di halaman utama
+st.title("Dashboard Kasus Penyakit")
+st.markdown("### Data yang difilter:")
+st.dataframe(filtered_data)
+
 
 # Dashboard Header
 st.title("Dashboard Kasus Penyakit di Jawa Barat Tahun 2019")
@@ -80,50 +115,11 @@ col2.metric("Total Kasus", f"{total_kasus:,}")
 
 # Tambahkan visualisasi lainnya sesuai kebutuhan
 # Misalnya, visualisasi menggunakan plotly atau seaborn
-import plotly.express as px
-
 # Visualisasi distribusi kasus berdasarkan jenis penyakit
 st.subheader("Distribusi Kasus Berdasarkan Jenis Penyakit")
 cases_by_disease = data.groupby('jenis_penyakit')['jumlah_kasus'].sum().reset_index()
 fig = px.bar(cases_by_disease, x='jenis_penyakit', y='jumlah_kasus', title="Jumlah Kasus Berdasarkan Jenis Penyakit")
 st.plotly_chart(fig)
-
-# Visualisasi Tren Kasus Berdasarkan Jenis Penyakit
-st.subheader("Visualisasi Tren Kasus per Jenis Penyakit")
-selected_disease = st.selectbox("Pilih Jenis Penyakit", descriptive_stats['jenis_penyakit'])
-filtered_data = data[data['jenis_penyakit'] == selected_disease]
-
-if not filtered_data.empty:
-    trend_chart = filtered_data.groupby('tahun')['jumlah_kasus'].sum().reset_index()
-    st.line_chart(trend_chart.set_index('tahun'))
-else:
-    st.warning("Tidak ada data untuk jenis penyakit yang dipilih.")
-
-
-# Grafik Kasus Berdasarkan Provinsi
-st.subheader("Jumlah Kasus Berdasarkan Provinsi")
-cases_by_province = filtered_data.groupby("nama_provinsi")["jumlah_kasus"].sum().reset_index()
-fig_province = px.bar(
-    cases_by_province,
-    x="nama_provinsi",
-    y="jumlah_kasus",
-    title="Jumlah Kasus per Provinsi",
-    labels={"jumlah_kasus": "Jumlah Kasus", "nama_provinsi": "Provinsi"},
-    text="jumlah_kasus",
-)
-fig_province.update_traces(texttemplate='%{text:.2s}', textposition='outside')
-st.plotly_chart(fig_province)
-
-# Grafik Kasus Berdasarkan Jenis Penyakit
-st.subheader("Jumlah Kasus Berdasarkan Jenis Penyakit")
-cases_by_disease = filtered_data.groupby("jenis_penyakit")["jumlah_kasus"].sum().reset_index()
-fig_disease = px.pie(
-    cases_by_disease,
-    values="jumlah_kasus",
-    names="jenis_penyakit",
-    title="Distribusi Kasus Berdasarkan Jenis Penyakit",
-)
-st.plotly_chart(fig_disease)
 
 # --- Penyakit Dominan di Setiap Kota ---
 st.subheader("Penyakit dengan Jumlah Kasus Tertinggi di Setiap Kota/Kabupaten")
@@ -158,10 +154,13 @@ pivot_data = data.pivot_table(values='jumlah_kasus', index='nama_kabupaten_kota'
 
 # Menghitung korelasi antara penyakit
 correlation_matrix = pivot_data.corr()
-print(correlation_matrix)
+st.write("Matriks Korelasi Antar Penyakit:")
+st.write(correlation_matrix)
 
 # Plot heatmap untuk matriks korelasi
 plt.figure(figsize=(10, 8))
-sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1) # Now sns is defined
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
 plt.title("Matriks Korelasi Antar Penyakit")
-plt.show()
+
+# Tampilkan plot menggunakan Streamlit
+st.pyplot(plt)
