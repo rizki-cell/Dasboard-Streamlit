@@ -5,6 +5,17 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+# Dashboard Header
+st.title("Dashboard Kasus Penyakit di Jawa Barat Tahun 2019")
+st.markdown("### Anggota Kelompok")
+st.markdown("""
+- **NRP 1**: 210514007 - M Rizki Pratama  
+- **NRP 2**: 210514016 - Niko Fauzan S 
+- **NRP 3**: 210514014 - Fauzan Kamal
+- **NRP 4**: 229534030 - Nida salamah
+- **NRP 5**: 210514011 - Rizkita Mayra
+""")
+
 # Load data
 data_path = "dinkes-od_15940_jumlah_kasus_penyakit_berdasarkan_jenis_penyakit_data.csv"
 data = pd.read_csv(data_path)
@@ -14,12 +25,10 @@ data_path = "dinkes-od_15940_jumlah_kasus_penyakit_berdasarkan_jenis_penyakit_da
 data = pd.read_csv(data_path)
 
 # Sidebar Filters
-st.sidebar.header("🔎 Filter Data")
-st.sidebar.markdown("Pilih filter di bawah ini untuk melihat data yang diinginkan:")
 
 # Menambahkan logo Dinas Kesehatan di Sidebar
 logo_path = "images.jpg"  # Ganti dengan path ke logo yang sesuai
-st.sidebar.image(logo_path, use_column_width=True, caption="Dinas Kesehatan Jawa Barat")
+st.sidebar.image(logo_path, use_container_width=True, caption="Dinas Kesehatan Jawa Barat")
 
 # Filter Tahun
 selected_year = st.sidebar.multiselect(
@@ -40,7 +49,7 @@ selected_city = st.sidebar.multiselect(
 # Informasi Sidebar
 st.sidebar.markdown("""
 **Info:**
-- Gunakan filter untuk menyesuaikan data berdasarkan Tahun dan Provinsi.
+- Gunakan filter untuk menyesuaikan data berdasarkan Tahun dan Kabupaten/kota.
 - Anda dapat memilih beberapa opsi dari masing-masing filter.
 """)
 
@@ -56,18 +65,6 @@ filtered_data = data[
 st.title("Dashboard Kasus Penyakit")
 st.markdown("### Data yang difilter:")
 st.dataframe(filtered_data)
-
-
-# Dashboard Header
-st.title("Dashboard Kasus Penyakit di Jawa Barat Tahun 2019")
-st.markdown("### Anggota Kelompok")
-st.markdown("""
-- **NRP 1**: 210514007 - M Rizki Pratama  
-- **NRP 2**: 210514016 - Niko Fauzan S 
-- **NRP 3**: 210514014 - Fauzan Kamal
-- **NRP 4**: 229534030 - Nida salamah
-- **NRP 5**: 210514011 - Rizkita Mayra
-""")
 
 # KPI Metrics
 st.header("Ringkasan")
@@ -103,15 +100,6 @@ descriptive_stats = calculate_descriptive_stats(data)
 # Tampilkan Tabel Statistik Deskriptif
 st.subheader("Statistik Deskriptif")
 st.dataframe(descriptive_stats)
-
-# Tambahkan Ringkasan Angka
-st.subheader("Ringkasan Statistik")
-total_penyakit = descriptive_stats['jenis_penyakit'].nunique()
-total_kasus = data['jumlah_kasus'].sum()
-
-col1, col2 = st.columns(2)
-col1.metric("Jenis Penyakit", total_penyakit)
-col2.metric("Total Kasus", f"{total_kasus:,}")
 
 # Tambahkan visualisasi lainnya sesuai kebutuhan
 # Misalnya, visualisasi menggunakan plotly atau seaborn
@@ -152,7 +140,52 @@ st.plotly_chart(dominant_chart)
 # Pivot data untuk mendapatkan jumlah kasus tiap penyakit di setiap kabupaten/kota
 pivot_data = data.pivot_table(values='jumlah_kasus', index='nama_kabupaten_kota', columns='jenis_penyakit', fill_value=0)
 
+# --- Penyakit dengan Jumlah Kasus Terkecil ---
+st.subheader("Penyakit dengan Jumlah Kasus Terkecil di Setiap Kota/Kabupaten")
+
+# Menentukan penyakit dengan jumlah kasus terkecil di setiap kabupaten/kota
+smallest_disease_city = data.loc[data.groupby('nama_kabupaten_kota')['jumlah_kasus'].idxmin()]
+
+# Membuat visualisasi bar chart horizontal
+smallest_chart = px.bar(
+    smallest_disease_city,
+    x='jumlah_kasus',
+    y='nama_kabupaten_kota',
+    color='jenis_penyakit',
+    orientation='h',
+    title="Penyakit dengan Jumlah Kasus Terkecil di Setiap Kota/Kabupaten",
+    labels={
+        "jumlah_kasus": "Jumlah Kasus",
+        "nama_kabupaten_kota": "Kota/Kabupaten",
+        "jenis_penyakit": "Jenis Penyakit"
+    },
+    text='jumlah_kasus'
+)
+
+# Menyesuaikan tata letak chart
+smallest_chart.update_layout(
+    xaxis_title="Jumlah Kasus",
+    yaxis_title="Kota/Kabupaten",
+    legend_title="Jenis Penyakit"
+)
+
+# Menampilkan chart pada Streamlit
+st.plotly_chart(smallest_chart)
+
+
+st.subheader("Jumlah Kasus Berdasarkan Jenis Penyakit")
+cases_by_disease = filtered_data.groupby("jenis_penyakit")["jumlah_kasus"].sum().reset_index()
+fig_disease = px.pie(
+    cases_by_disease,
+    values="jumlah_kasus",
+    names="jenis_penyakit",
+    title="Distribusi Kasus Berdasarkan Jenis Penyakit",
+)
+st.plotly_chart(fig_disease)
+
+
 # Menghitung korelasi antara penyakit
+st.subheader("Matriks Korelasi Antar Penyakit")
 correlation_matrix = pivot_data.corr()
 st.write("Matriks Korelasi Antar Penyakit:")
 st.write(correlation_matrix)
@@ -160,7 +193,7 @@ st.write(correlation_matrix)
 # Plot heatmap untuk matriks korelasi
 plt.figure(figsize=(10, 8))
 sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1)
-plt.title("Matriks Korelasi Antar Penyakit")
+
 
 # Tampilkan plot menggunakan Streamlit
 st.pyplot(plt)
