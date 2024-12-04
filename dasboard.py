@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Load data
 data_path = "dinkes-od_15940_jumlah_kasus_penyakit_berdasarkan_jenis_penyakit_data.csv"
@@ -21,9 +24,8 @@ filtered_data = data[
 ]
 
 # Dashboard Header
-st.title("Dashboard Kasus Penyakit di Indonesia")
-st.markdown("**Aplikasi ini wajib bisa diakses secara online**")
-st.markdown("### Identitas Kelompok")
+st.title("Dashboard Kasus Penyakit di Jawa Barat Tahun 2019")
+st.markdown("### Anggota Kelompok")
 st.markdown("""
 - **NRP 1**: 210514007 - M Rizki Pratama  
 - **NRP 2**: 210514016 - Niko Fauzan S 
@@ -39,17 +41,51 @@ col1.metric("Total Kasus", f"{filtered_data['jumlah_kasus'].sum():,}")
 col2.metric("Jenis Penyakit", filtered_data["jenis_penyakit"].nunique())
 col3.metric("Kabupaten/Kota", filtered_data["nama_kabupaten_kota"].nunique())
 
-# Grafik Tren Kasus per Tahun
-st.subheader("Tren Jumlah Kasus per Tahun")
-cases_by_year = filtered_data.groupby("tahun")["jumlah_kasus"].sum().reset_index()
-fig_trend = px.line(
-    cases_by_year,
-    x="tahun",
-    y="jumlah_kasus",
-    title="Jumlah Kasus per Tahun",
-    labels={"jumlah_kasus": "Jumlah Kasus", "tahun": "Tahun"},
-)
-st.plotly_chart(fig_trend)
+import streamlit as st
+import pandas as pd
+
+
+# Hitung statistik deskriptif
+@st.cache_data
+def calculate_descriptive_stats(data):
+    descriptive_stats = data.groupby('jenis_penyakit')['jumlah_kasus'].agg(['mean', 'median', pd.Series.mode]).reset_index()
+    descriptive_stats['mean'] = descriptive_stats['mean'].round(2)
+    descriptive_stats['median'] = descriptive_stats['median'].round(2)
+    descriptive_stats['mode'] = descriptive_stats['mode'].apply(lambda x: x if isinstance(x, list) else [x])
+    return descriptive_stats
+
+descriptive_stats = calculate_descriptive_stats(data)
+
+# Header Dashboard
+st.title("Dashboard Statistik Deskriptif Kasus Penyakit")
+st.markdown("""
+Dashboard ini menyajikan deskriptif statistik untuk jumlah kasus penyakit berdasarkan jenis penyakit, mencakup rata-rata (*mean*), median, dan modus (*mode*).
+""")
+
+# Tampilkan Tabel Statistik Deskriptif
+st.subheader("Statistik Deskriptif")
+st.dataframe(descriptive_stats)
+
+# Tambahkan Ringkasan Angka
+st.subheader("Ringkasan Statistik")
+total_penyakit = descriptive_stats['jenis_penyakit'].nunique()
+total_kasus = data['jumlah_kasus'].sum()
+
+col1, col2 = st.columns(2)
+col1.metric("Jenis Penyakit", total_penyakit)
+col2.metric("Total Kasus", f"{total_kasus:,}")
+
+# Visualisasi Tren Kasus Berdasarkan Jenis Penyakit
+st.subheader("Visualisasi Tren Kasus per Jenis Penyakit")
+selected_disease = st.selectbox("Pilih Jenis Penyakit", descriptive_stats['jenis_penyakit'])
+filtered_data = data[data['jenis_penyakit'] == selected_disease]
+
+if not filtered_data.empty:
+    trend_chart = filtered_data.groupby('tahun')['jumlah_kasus'].sum().reset_index()
+    st.line_chart(trend_chart.set_index('tahun'))
+else:
+    st.warning("Tidak ada data untuk jenis penyakit yang dipilih.")
+
 
 # Grafik Kasus Berdasarkan Provinsi
 st.subheader("Jumlah Kasus Berdasarkan Provinsi")
@@ -89,3 +125,16 @@ if "nama_provinsi" in filtered_data.columns:
         labels={"jumlah_kasus": "Jumlah Kasus"},
     )
     st.plotly_chart(fig_map)
+
+# Pivot data untuk mendapatkan jumlah kasus tiap penyakit di setiap kabupaten/kota
+pivot_data = data.pivot_table(values='jumlah_kasus', index='nama_kabupaten_kota', columns='jenis_penyakit', fill_value=0)
+
+# Menghitung korelasi antara penyakit
+correlation_matrix = pivot_data.corr()
+print(correlation_matrix)
+
+# Plot heatmap untuk matriks korelasi
+plt.figure(figsize=(10, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', vmin=-1, vmax=1) # Now sns is defined
+plt.title("Matriks Korelasi Antar Penyakit")
+plt.show()
