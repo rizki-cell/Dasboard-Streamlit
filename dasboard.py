@@ -107,19 +107,33 @@ fig_disease = px.pie(
 )
 st.plotly_chart(fig_disease)
 
-# Peta Interaktif (Opsional jika data lokasi tersedia)
-if "nama_provinsi" in filtered_data.columns:
-    st.subheader("Peta Interaktif Jumlah Kasus")
-    geo_data = filtered_data.groupby("nama_provinsi")["jumlah_kasus"].sum().reset_index()
-    fig_map = px.choropleth(
-        geo_data,
-        locations="nama_provinsi",
-        locationmode="country names",
-        color="jumlah_kasus",
-        title="Peta Sebaran Kasus per Provinsi",
-        labels={"jumlah_kasus": "Jumlah Kasus"},
-    )
-    st.plotly_chart(fig_map)
+# --- Penyakit Dominan di Setiap Kota ---
+st.subheader("Penyakit dengan Jumlah Kasus Tertinggi di Setiap Kota/Kabupaten")
+
+# Menentukan penyakit dengan jumlah kasus tertinggi di setiap kabupaten/kota
+dominant_disease_city = data.loc[data.groupby('nama_kabupaten_kota')['jumlah_kasus'].idxmax()]
+dominant_chart = px.bar(
+    dominant_disease_city,
+    x='jumlah_kasus',
+    y='nama_kabupaten_kota',
+    color='jenis_penyakit',
+    orientation='h',
+    title="Penyakit dengan Jumlah Kasus Tertinggi di Setiap Kota/Kabupaten",
+    labels={
+        "jumlah_kasus": "Jumlah Kasus",
+        "nama_kabupaten_kota": "Kota/Kabupaten",
+        "jenis_penyakit": "Jenis Penyakit"
+    },
+    text='jumlah_kasus'
+)
+
+dominant_chart.update_layout(
+    xaxis_title="Jumlah Kasus",
+    yaxis_title="Kota/Kabupaten",
+    legend_title="Jenis Penyakit"
+)
+
+st.plotly_chart(dominant_chart)
 
 # Pivot data untuk mendapatkan jumlah kasus tiap penyakit di setiap kabupaten/kota
 pivot_data = data.pivot_table(values='jumlah_kasus', index='nama_kabupaten_kota', columns='jenis_penyakit', fill_value=0)
