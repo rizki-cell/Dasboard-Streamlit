@@ -18,7 +18,7 @@ st.sidebar.header("🔎 Filter Data")
 st.sidebar.markdown("Pilih filter di bawah ini untuk melihat data yang diinginkan:")
 
 # Menambahkan logo Dinas Kesehatan di Sidebar
-logo_path = "iamges.jpg"  # Ganti dengan path ke logo yang sesuai
+logo_path = "images.jpg"  # Ganti dengan path ke logo yang sesuai
 st.sidebar.image(logo_path, use_column_width=True, caption="Dinas Kesehatan Jawa Barat")
 
 # Filter Tahun
