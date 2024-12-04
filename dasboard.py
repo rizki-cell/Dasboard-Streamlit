@@ -56,11 +56,6 @@ def calculate_descriptive_stats(data):
 
 descriptive_stats = calculate_descriptive_stats(data)
 
-# Header Dashboard
-st.title("Dashboard Statistik Deskriptif Kasus Penyakit")
-st.markdown("""
-Dashboard ini menyajikan deskriptif statistik untuk jumlah kasus penyakit berdasarkan jenis penyakit, mencakup rata-rata (*mean*), median, dan modus (*mode*).
-""")
 
 # Tampilkan Tabel Statistik Deskriptif
 st.subheader("Statistik Deskriptif")
