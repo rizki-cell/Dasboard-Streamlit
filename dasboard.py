@@ -41,22 +41,22 @@ col1.metric("Total Kasus", f"{filtered_data['jumlah_kasus'].sum():,}")
 col2.metric("Jenis Penyakit", filtered_data["jenis_penyakit"].nunique())
 col3.metric("Kabupaten/Kota", filtered_data["nama_kabupaten_kota"].nunique())
 
-
-# Load your data
-data_path = "dinkes-od_15940_jumlah_kasus_penyakit_berdasarkan_jenis_penyakit_data.csv"
-data = pd.read_csv(data_path)
+# Periksa kolom-kolom dalam data
+print(data.columns)
 
 # Hitung statistik deskriptif
 @st.cache_data
 def calculate_descriptive_stats(data):
+    # Melakukan agregasi berdasarkan 'jenis_penyakit'
     descriptive_stats = data.groupby('jenis_penyakit')['jumlah_kasus'].agg(['mean', 'median', pd.Series.mode]).reset_index()
-    descriptive_stats['mean'] = descriptive_stats['mean'].round(2)
-    descriptive_stats['median'] = descriptive_stats['median'].round(2)
-    descriptive_stats['mode'] = descriptive_stats['mode'].apply(lambda x: x if isinstance(x, list) else [x])
     
-    # Pastikan 'jumlah_kasus' bertipe numerik
-    descriptive_stats['jumlah_kasus'] = pd.to_numeric(descriptive_stats['jumlah_kasus'], errors='coerce')
-
+    # Memeriksa kolom setelah agregasi
+    print(descriptive_stats.columns)
+    
+    # Jika kolom 'jumlah_kasus' ada, lanjutkan proses konversi
+    if 'jumlah_kasus' in descriptive_stats.columns:
+        descriptive_stats['jumlah_kasus'] = pd.to_numeric(descriptive_stats['jumlah_kasus'], errors='coerce')
+    
     # Pastikan 'jenis_penyakit' bertipe string
     descriptive_stats['jenis_penyakit'] = descriptive_stats['jenis_penyakit'].astype(str)
 
