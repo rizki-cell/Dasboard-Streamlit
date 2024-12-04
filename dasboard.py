@@ -41,9 +41,10 @@ col1.metric("Total Kasus", f"{filtered_data['jumlah_kasus'].sum():,}")
 col2.metric("Jenis Penyakit", filtered_data["jenis_penyakit"].nunique())
 col3.metric("Kabupaten/Kota", filtered_data["nama_kabupaten_kota"].nunique())
 
-import streamlit as st
-import pandas as pd
 
+# Load your data
+data_path = "dinkes-od_15940_jumlah_kasus_penyakit_berdasarkan_jenis_penyakit_data.csv"
+data = pd.read_csv(data_path)
 
 # Hitung statistik deskriptif
 @st.cache_data
@@ -52,10 +53,17 @@ def calculate_descriptive_stats(data):
     descriptive_stats['mean'] = descriptive_stats['mean'].round(2)
     descriptive_stats['median'] = descriptive_stats['median'].round(2)
     descriptive_stats['mode'] = descriptive_stats['mode'].apply(lambda x: x if isinstance(x, list) else [x])
+    
+    # Pastikan 'jumlah_kasus' bertipe numerik
+    descriptive_stats['jumlah_kasus'] = pd.to_numeric(descriptive_stats['jumlah_kasus'], errors='coerce')
+
+    # Pastikan 'jenis_penyakit' bertipe string
+    descriptive_stats['jenis_penyakit'] = descriptive_stats['jenis_penyakit'].astype(str)
+
     return descriptive_stats
 
+# Calculate descriptive stats
 descriptive_stats = calculate_descriptive_stats(data)
-
 
 # Tampilkan Tabel Statistik Deskriptif
 st.subheader("Statistik Deskriptif")
@@ -69,6 +77,16 @@ total_kasus = data['jumlah_kasus'].sum()
 col1, col2 = st.columns(2)
 col1.metric("Jenis Penyakit", total_penyakit)
 col2.metric("Total Kasus", f"{total_kasus:,}")
+
+# Tambahkan visualisasi lainnya sesuai kebutuhan
+# Misalnya, visualisasi menggunakan plotly atau seaborn
+import plotly.express as px
+
+# Visualisasi distribusi kasus berdasarkan jenis penyakit
+st.subheader("Distribusi Kasus Berdasarkan Jenis Penyakit")
+cases_by_disease = data.groupby('jenis_penyakit')['jumlah_kasus'].sum().reset_index()
+fig = px.bar(cases_by_disease, x='jenis_penyakit', y='jumlah_kasus', title="Jumlah Kasus Berdasarkan Jenis Penyakit")
+st.plotly_chart(fig)
 
 # Visualisasi Tren Kasus Berdasarkan Jenis Penyakit
 st.subheader("Visualisasi Tren Kasus per Jenis Penyakit")
